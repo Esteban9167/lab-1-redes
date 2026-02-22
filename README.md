@@ -230,53 +230,247 @@ como hago la colectividad entre reuter para asignar los puertos?
 
 La diferencia y el beneficio de conectar un punto de acceso inalámbrico (Access Point) a un router en Packet Tracerdepende del objetivo de la red.
 
-1️⃣ Router (solo)
+## 1️⃣ Router (solo)
 
 Función principal:
-• Conectar redes diferentes (ej: LAN ↔ Internet).
-• Asignar IP (si tiene DHCP configurado).
-• Enrutar tráfico entre subredes.
+• Conectar redes diferentes (ej: LAN ↔ Internet).  
+• Asignar IP (si tiene DHCP configurado).  
+• Enrutar tráfico entre subredes.  
 
 Limitación:
-• No siempre incluye conectividad inalámbrica.
-• Los equipos WiFi no pueden conectarse directamente si el router no tiene módulo wireless.
-
-2️⃣ Router + Punto de Acceso (AP)
-
-Beneficio principal:
-Permite que dispositivos inalámbricos (laptops, celulares, tablets) se conecten a la red cableada.
-
-Ventajas técnicas:
-• Extiende la red cableada a WiFi.
-• Permite movilidad de usuarios.
-• No crea otra red (si está en modo AP), solo amplía la existente.
-• Mejora cobertura si el router está lejos.
-• Permite segmentar si se configura con VLAN.
-
-🔎 En Packet Tracer
-
-Si conectas:
-Router → Switch → Access Point → Laptop inalámbrica
-
-Obtienes:
-• La laptop recibe IP del router (si hay DHCP).
-• Puede hacer ping a otros dispositivos.
-• Simulación realista de red empresarial.
-
-📌 Diferencia clave
-
-Router: Enruta tráfico, puede asignar IP, conecta redes.  
-Access Point: Solo transmite señal WiFi, no asigna IP, conecta dispositivos inalámbricos a la misma red.
-
-🎯 ¿Cuál es el beneficio real?
-
-Agregar un AP:
-• Permite conexión inalámbrica sin cambiar la arquitectura.
-• Es más económico que comprar un router inalámbrico nuevo.
-• Escalable (puedes poner varios AP).
-• Ideal para oficinas, colegios, centros comerciales.
+• No siempre incluye conectividad inalámbrica.  
+• Los equipos WiFi no pueden conectarse directamente si el router no tiene módulo wireless.  
 
 ---
+
+## 2️⃣ Router + Punto de Acceso (AP)
+
+Beneficio principal:  
+Permite que dispositivos inalámbricos (laptops, celulares, tablets) se conecten a la red cableada.  
+
+Ventajas técnicas:
+• Extiende la red cableada a WiFi.  
+• Permite movilidad de usuarios.  
+• No crea otra red (si está en modo AP), solo amplía la existente.  
+• Mejora cobertura si el router está lejos.  
+• Permite segmentar si se configura con VLAN.  
+
+---
+
+## 🔎 En Packet Tracer
+
+Si conectas:  
+Router → Switch → Access Point → Laptop inalámbrica  
+
+Obtienes:
+• La laptop recibe IP del router (si hay DHCP).  
+• Puede hacer ping a otros dispositivos.  
+• Simulación realista de red empresarial.  
+
+---
+
+## 📌 Diferencia clave
+
+| Router | Access Point |
+|---------|--------------|
+| Enruta tráfico | Solo transmite señal WiFi |
+| Puede asignar IP | No asigna IP (solo puentea) |
+| Conecta redes | Conecta dispositivos inalámbricos a la misma red |
+
+---
+
+## 🎯 ¿Cuál es el beneficio real?
+
+Agregar un AP:
+• Permite conexión inalámbrica sin cambiar la arquitectura.  
+• Es más económico que comprar un router inalámbrico nuevo.  
+• Escalable (puedes poner varios AP).  
+• Ideal para oficinas, colegios, centros comerciales.  
+
+---
+
+Si quieres, puedo explicarte el escenario empresarial correcto (por ejemplo para un centro comercial o propiedad horizontal) y cómo debería diseñarse en Packet Tracer para simular algo real.
+
+---
+
+# No se están comunicando los dos reuteres que hago. Paso a paso ¿
+
+(fotos no-enteindo1, no-enteindo2)
+
+Perfecto. Ya vi el problema exacto.
+
+En Router_ISP tu show ip interface brief muestra:
+
+```
+Serial0/1/0      unassigned   up   up
+Serial0/1/0.1    unassigned   up   up
+```
+
+🔴 ERROR:  
+La subinterfaz NO tiene IP configurada.  
+Por eso el ping nunca va a responder.  
+
+En Router1 sí tienes:
+
+```
+Serial0/1/0.1  10.0.0.1
+```
+
+Pero en Router_ISP la .1 está sin IP.
+
+---
+
+## ✅ ARREGLO DEFINITIVO
+
+En Router_ISP ejecuta exactamente:
+
+```bash
+enable
+configure terminal
+interface serial0/1/0
+encapsulation frame-relay
+no shutdown
+exit
+
+interface serial0/1/0.1 point-to-point
+ip address 10.0.0.2 255.255.255.252
+frame-relay interface-dlci 102
+no shutdown
+exit
+```
+
+---
+
+## 🔎 Luego verifica
+
+```bash
+show ip interface brief
+```
+
+Debe verse:
+
+```
+Serial0/1/0      unassigned   up   up
+Serial0/1/0.1    10.0.0.2     up   up
+```
+
+---
+
+🔥 Después prueba desde Router1
+
+```bash
+ping 10.0.0.2
+```
+
+Ahora sí debe responder 100%.
+
+Tu Cloud está bien.  
+Tu DLCI está activo.  
+Solo faltaba la IP en la subinterfaz del ISP.  
+
+Configura eso y dime el resultado del ping.
+
+---
+
+# COMOOOO hago para conectar los puertos serieales en calud-pt?
+
+Te lo explico claro y directo. Para conectar puertos seriales en Cloud-PT debes hacerlo con Frame Relay. No funciona como un switch normal.
+
+---
+
+## ✅ PASO 1 — Conectar físicamente
+
+1. Selecciona Serial DCE.  
+2. Conecta:  
+   - Router1 Serial0/1/0 → Cloud Serial0  
+3. Selecciona Serial DTE.  
+4. Conecta:  
+   - Router_ISP Serial0/1/0 → Cloud Serial1  
+
+⚠️ Solo uno debe ser DCE.
+
+---
+
+## ✅ PASO 2 — Crear el circuito en el Cloud
+
+1. Clic en Cloud  
+2. Ir a Config  
+3. En el panel izquierdo entra a Frame Relay  
+4. Arriba selecciona:  
+   - From Port: Serial0  
+   - To Port:   Serial1  
+5. En DLCI escribe: 102  
+6. Presiona Add  
+
+Debe aparecer una línea en la tabla indicando la conexión.
+
+---
+
+## ✅ PASO 3 — Configurar los routers
+
+En Router1:
+
+```bash
+interface serial0/1/0
+encapsulation frame-relay
+no shutdown
+exit
+
+interface serial0/1/0.1 point-to-point
+ip address 10.0.0.1 255.255.255.252
+frame-relay interface-dlci 102
+no shutdown
+```
+
+En Router_ISP:
+
+```bash
+interface serial0/1/0
+encapsulation frame-relay
+no shutdown
+exit
+
+interface serial0/1/0.1 point-to-point
+ip address 10.0.0.2 255.255.255.252
+frame-relay interface-dlci 102
+no shutdown
+```
+
+---
+
+## ✅ PASO 4 — Verificar
+
+En ambos routers:
+
+```bash
+show frame-relay map
+```
+
+Debe decir:
+
+```
+status defined, active
+```
+
+Luego prueba:
+
+```bash
+ping 10.0.0.2
+```
+
+---
+
+🎯 Si no levanta
+
+En la interfaz serial física agrega:
+
+```bash
+frame-relay lmi-type cisco
+```
+
+Eso es todo lo necesario para que Cloud-PT conecte seriales correctamente.
+
+Si quieres, te explico ahora qué significa DCE/DTE para que lo puedas explicar en el video.---
 
 Para el desarrollo de este laboratorio se utilizó ChatGPT (OpenAI) como apoyo para organización del contenido, redacción técnica y explicación teórica. La información fue validada con material oficial de Cisco Networking Academy con el método de prueba y error.
 
